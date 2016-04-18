@@ -1,0 +1,12 @@
+#!/bin/sh
+
+echo 'test'
+JS=`git diff --cached --name-status | awk '$1 != "R" && $1 != "D" { print $2 }'  | awk '{if ($1 ~ /\.js$/ && $1 !~/.test.js$/ && $1 !~/.spec.js$/) print $1}'`
+
+if [ "$JS" ]; then
+  echo 'JavaScipt testing'
+  ./tasks/lint-js $JS || ERRORS=1
+fi
+
+exit $ERRORS
+

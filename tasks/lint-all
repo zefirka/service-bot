@@ -1,0 +1,10 @@
+#!/bin/sh
+
+JS=`find . -path ./node_modules -prune -o -name '*.js'`
+
+if [ "$JS" ]; then
+  ./tasks/lint-js $JS || ERRORS=1
+fi
+
+exit $ERRORS
+

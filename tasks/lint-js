@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# no files, exit
+if [ $# -eq 0 ]; then
+    exit
+fi
+
+echo '[jshint]'
+node_modules/.bin/jshint --reporter node_modules/jshint-stylish/index.js $* || ERRORS=1
+
+echo '[jscs]'
+node_modules/.bin/jscs $* || ERRORS=1
+
+exit $ERRORS

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+if [ ! pwd ] 
+then 
+	"There is no pwd command"
+fi
+
+echo "Starting post-install script"
+
+ln -fs $(pwd)/tasks/pre-commit $(pwd)/.git/hooks/pre-commit
+chmod 777 $(pwd)/tasks/*
+
+echo "Git-hooks are ready"
