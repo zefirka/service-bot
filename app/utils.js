@@ -3,10 +3,18 @@
 const r = require('request');
 const toArray = require('lodash').toArray;
 
-exports.post = (url, headers, query) => _call(url, 'POST', {body: {query}, headers});
-exports.get = (url, headers, data) => _call(url, 'GET', {headers, data});
+exports.post = (url, query, headers) => _call(url, 'POST', {body: {query}, headers});
+exports.get = (url, data, headers) => _call(url, 'GET', {headers, data});
+exports.call = (url, data) => {
+    return _call(url, 'GET', {
+        data: {json: false},
+        encoding: data.encoding
+    });
+};
+
 exports.empty = empty;
 exports.lense = lense;
+exports.promisify = promisify;
 
 /**
  * @private
@@ -20,7 +28,7 @@ function _call(url, method, data) {
         url: url,
         method: method || 'GET',
         json: data.json || true,
-        encoding: 'utf-8',
+        encoding: data.encoding || 'utf-8',
         headers: data.headers,
         body: data.body,
         qs: data.data
@@ -34,6 +42,12 @@ function _call(url, method, data) {
 
             resolve(body);
         });
+    });
+}
+
+function promisify(fn) {
+    return new Promise((resolve, reject) => {
+        fn(resolve, reject);
     });
 }
 

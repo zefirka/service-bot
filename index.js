@@ -19,11 +19,14 @@ app.get('/', (req, res) => {
     res.render('index.jade');
 });
 
-service.subscribe(app);
+service.subscribeApi(app);
 
 app.use('*', (req, res) => res.status(404).end('Not found'));
 
 app.listen(PORT, () => {
-    service.init(app);
+    service
+        .init(app)
+        .on('ready', () => service.subscribe(app));
+
     console.log(`listening ${PORT}`);
 });
