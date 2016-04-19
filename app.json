@@ -8,5 +8,5 @@
     "token": "200834101:AAEQ2LzU2lAg8Oi0vIo5-EnsPbO5VjI8_eM",
     "username": "blinchikbot",
     "webhook": "https://na-service-bot.herokuapp.com/api/{token}/",
-    "daily": "http://na-russia.org/egednevnik/",
+    "daily": "http://na-russia.org/egednevnik/"
 }
