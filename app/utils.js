@@ -15,6 +15,7 @@ exports.call = (url, data) => {
 exports.empty = empty;
 exports.lense = lense;
 exports.promisify = promisify;
+exports.exec = exec;
 
 /**
  * @private
@@ -74,4 +75,8 @@ function lense() {
  */
 function empty() {
     return '';
+}
+
+function exec(val) {
+    return typeof val === 'function' ? val() : val;
 }
