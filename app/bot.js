@@ -4,10 +4,23 @@ const EventEmitter = require('events');
 const util = require('util');
 const utils = require('./utils');
 
+const logger = require('./utils/logger');
+
 function Bot(token) {
     this.token = token;
     this._actions = [];
     this._url = `https://api.telegram.org/bot${token}/{method}`;
+
+    let storage = {};
+
+    this.set = function (key, value) {
+        storage[key] = value;
+        return value;
+    };
+
+    this.get = function (value) {
+        return storage[value];
+    };
 
     EventEmitter.call(this);
 }
@@ -16,12 +29,11 @@ util.inherits(Bot, EventEmitter);
 
 Bot.prototype.assign = function (app) {
     const self = this;
-    console.log('app', app);
+
     app.post(`/token/${this.token}/`, req => {
-        console.log(req.body);
         const update = req.body;
-        self.processUpdate(update);
         self.emit('update', update);
+        self.processUpdate(update);
     });
 
     return this;
@@ -37,51 +49,56 @@ Bot.prototype.processUpdate = function (update) {
     const self = this;
 
     Object.keys(this.commands).forEach(function (command) {
-        const match = self.commands[command].matches;
+        const commandBody = self.commands[command];
+        const matches = commandBody.matches;
 
-        if (match.test(text)) {
-            self.emit(command, update);
+        const isMatchingAnyCommand = [
+            Array.isArray(matches) ? matches.some(isCommand(text)) : matches.test(text),
+            commandBody.isBotCommand && new RegExp(`^/${command}`).test(text)
+        ].some(Boolean);
+
+        if (isMatchingAnyCommand) {
+            self.emit(command, {
+                update: update,
+                command: command
+            });
         }
     });
 };
 
 Bot.prototype.call = function (method, data) {
     const url = this._url.replace('{method}', method);
-
     return utils.get(url, data);
 };
 
 Bot.prototype.auth = function (async) {
     const self = this;
-    const call = () => {
+    return this.register(() => {
         return self.call('getMe').then(data => {
             if (data.ok) {
-                console.log('Auth is successfull', data.result);
+                logger('Auth is successfull').dev(data.result);
                 return data;
             } else {
                 throw data;
             }
         });
-    };
-
-    return this.register(call, async);
+    }, async);
 };
 
 Bot.prototype.setWebhook = function (hook, async) {
     const self = this;
-    const call = () => {
+    return this.register(() => {
         return self.call('setWebhook', {
             url: hook
         }).then(data => {
             if (data.ok) {
+                logger(`Setup webhok: ${hook}`);
                 return data;
             } else {
                 throw data;
             }
         });
-    };
-
-    return this.register(call, async);
+    }, async);
 
 };
 
@@ -108,5 +125,11 @@ Bot.prototype.invoke = function () {
         });
     }, null);
 };
+
+function isCommand(text) {
+    return function (match) {
+        return match.test(text);
+    };
+}
 
 module.exports = Bot;

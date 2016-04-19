@@ -1,6 +1,6 @@
 {
   "name": "service-bot",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "index.js",
   "author": "",
@@ -23,6 +23,7 @@
     "iconv": "^2.1.11",
     "jade": "^1.11.0",
     "lodash": "3.10.0",
+    "moment": "^2.13.0",
     "request": "^2.69.0"
   },
   "devDependencies": {
@@ -34,8 +35,8 @@
     "must-dist": "^0.12.0"
   },
   "keywords": [
-    "bitbar",
-    "plugin",
-    "partner"
+    "service",
+    "telegram",
+    "bot"
   ]
 }
