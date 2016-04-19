@@ -16,12 +16,14 @@ util.inherits(Bot, EventEmitter);
 
 Bot.prototype.assign = function (app) {
     const self = this;
-    console.log('app', app);
-    app.post(`/token/${this.token}/`, req => {
+    console.log(`/token/${this.token}/`);
+    app.post(`/token/${this.token}/`, (req, res) => {
         console.log(req.body);
         const update = req.body;
+        console.log('update', update);
         self.processUpdate(update);
         self.emit('update', update);
+        res.send('ok');
     });
 
     return this;
