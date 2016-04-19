@@ -1,0 +1,12 @@
+{
+    "name": "Service Bot",
+    "description": "Service-bot",
+    "repository": "https://github.com/zefirka/service-bot",
+    "keywords": ["node", "express", "static"],
+    "image": "heroku/nodejs",
+
+    "token": "200834101:AAEQ2LzU2lAg8Oi0vIo5-EnsPbO5VjI8_eM",
+    "username": "blinchikbot",
+    "webhook": "https://na-service-bot.herokuapp.com/api/{token}/",
+    "daily": "http://na-russia.org/egednevnik/",
+}
