@@ -8,7 +8,7 @@ const service       = require('./app/service');
 
 const app = express();
 
-const PORT = process.env.HTTP_PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 app.set('view engine', 'jade');
 app.set('views', './views');
