@@ -2,24 +2,39 @@
 
 const EventEmitter = require('events');
 const util = require('util');
-const utils = require('./utils');
+const mongoose = require('mongoose');
+const lodash = require('lodash');
 
+const utils = require('./utils');
 const logger = require('./utils/logger');
+const models = require('./db/model');
 
 function Bot(token) {
     this.token = token;
     this._actions = [];
+    this._connected = false;
     this._url = `https://api.telegram.org/bot${token}/{method}`;
 
-    let storage = {};
-
-    this.set = function (key, value) {
-        storage[key] = value;
-        return value;
+    let storage = {
+        users: {},
+        groups: {}
     };
 
-    this.get = function (value) {
-        return storage[value];
+    this.set = function (key, valueOrKey, valueOrNothing) {
+        if (valueOrNothing !== undefined) {
+            let inner = storage[key];
+            if (inner) {
+                storage[key][valueOrKey] = valueOrNothing;
+                return valueOrNothing;
+            }
+        } else {
+            storage[key] = valueOrKey;
+        }
+        return valueOrKey;
+    };
+
+    this.get = function (key) {
+        return lodash.get(storage, key);
     };
 
     EventEmitter.call(this);
@@ -32,7 +47,6 @@ Bot.prototype.assign = function (app) {
     app.post(`/token/${this.token}/`, (req, res) => {
         const update = req.body;
         self.emit('update', update);
-        self.processUpdate(update);
         res.status(200).send('Ok');
     });
 
@@ -155,6 +169,63 @@ Bot.prototype.invoke = function () {
             return fn(data);
         });
     }, null);
+};
+
+/**
+ * @public
+ * @param {object} user
+ * @return {Promise}
+ */
+Bot.prototype.createUser = function (user) {
+    logger('Saving new user: ')
+        .prod(user.username)
+        .dev(user);
+
+    const userData = {
+        id: user.id,
+        username: user.username,
+        lang: 'ru',
+        timezone: 'GMT +3: MSK'
+    };
+
+    const newUser = new models.User(userData);
+
+    return newUser
+        .save(newUser)
+        .then(() => userData);
+};
+
+Bot.prototype.getUserById = function (id) {
+    let userId = this.get('users')[id];
+    return userId ? Promise.resolve(userId) : models.User.find({id: String(id)}).then(users => {
+        if (users.length <= 1) {
+            return users[0].toJSON();
+        } else {
+            throw 'Duplicate USER_ID at table Users';
+        }
+    }).catch(error => {
+        console.log('error', error);
+    });
+};
+
+Bot.prototype.getUserLang = function (id) {
+    return this.get('users')[id].lang;
+};
+
+Bot.prototype.connectToDb = function () {
+    const self = this;
+    return new Promise((resolve, reject) => {
+        mongoose.connect(process.env.MONGOLAB_URI, error => {
+            if (error) {
+                logger('An error was occured while connecting to Mongo')
+                    .dev(error);
+                reject(error);
+                return;
+            }
+            self._connected = true;
+            resolve();
+        });
+    });
 };
 
 function isCommand(text) {

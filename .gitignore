@@ -2,3 +2,4 @@ node_modules
 npm-debug.log
 app.json
 app.dev.json
+post.js

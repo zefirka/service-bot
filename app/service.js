@@ -1,5 +1,8 @@
 'use strict';
 
+const lodash = require('lodash');
+const spread = lodash.spread;
+
 const Bot = require('./bot');
 const crons = require('./crons');
 const config = require('./config');
@@ -25,17 +28,24 @@ function init() {
         .setWebhook(webhookAddress)
         .invoke()
         .then(() => {
-            serviceBot.call('getUpdates')
-                .then((update) => {
-                    onDev(() => {
-                        let chatId = update.result.pop().message.chat.id;
-                        serviceBot.set('chatId', chatId);
-                        return config;
-                    });
+            return Promise.all([
+                serviceBot.call('getUpdates'),
+                serviceBot.connectToDb()]);
+        }).then(spread(updates => {
+            onDev(() => {
+                let chatId = updates.result.pop().message.chat.id;
+                serviceBot.set('chatId', chatId);
+                return config;
+            });
 
-                    logger('Service Bot is ready');
-                    serviceBot.emit('ready');
-                });
+            logger('Service Bot is ready');
+            logger('Service Bot connected with database');
+            serviceBot.emit('ready');
+
+        }))
+        .catch((error) => {
+            logger(error);
+            throw error;
         });
 
     crons
@@ -54,12 +64,32 @@ function subscribe() {
             logger('Update recieved:')
                 .dev(upd)
                 .prod(upd.message.text);
+
+            const user = upd.message.from;
+
+            if (serviceBot.get('users')[user.id]) {
+                serviceBot.processUpdate(upd);
+                return;
+            }
+
+            serviceBot
+                .getUserById(user.id)
+                .then(userByUserId => userByUserId || serviceBot.createUser(user))
+                .then(newUser => {
+                    serviceBot.set('users', user.id, newUser);
+                    serviceBot.processUpdate(upd);
+                });
+
         })
         .on('daily', function (data) {
             const update = data.update;
+            const userId = update.message.from.id;
+            const userLang = serviceBot.getUserLang(userId);
+
             logger.dev('/daily command recieved');
+
             crons
-                .getDaily()
+                .getDaily(userLang)
                 .then(function (daily) {
                     serviceBot.send({
                             chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
