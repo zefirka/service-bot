@@ -3,7 +3,9 @@
 const grabber = require('./grabber');
 const CronJob = require('cron').CronJob;
 const formatDaily = require('./formatter').formatDaily;
-const DAILY = require('../app.json').daily;
+const i18n = require('./utils/i18n');
+
+const config = require('./config');
 
 let cache = {
 
@@ -11,12 +13,16 @@ let cache = {
 
 module.exports.getDaily = getDaily;
 
-function getDaily() {
-    if (cache.daily) {
-        return new Promise(resolve => resolve(cache.daily));
+function getDaily(lang) {
+    if (cache.daily && cache.lang === lang) {
+        return Promise.resolve(cache.daily);
     }
 
-    return grabber(DAILY)
+    i18n.lang(lang);
+
+    const dailyAddress = i18n('Daily URL') || config.daily;
+
+    return grabber(dailyAddress)
         .then($ => {
             let text = formatDaily({
                 title: $('.day_title').text().trim(),
@@ -24,9 +30,10 @@ function getDaily() {
                 from: $('.evd_cont').find('p').eq(1).text().trim(),
                 body: $('.evd_cont').find('div').eq(1).text().trim(),
                 end: $('.evd_cont').find('div').eq(2).text().trim()
-            });
+            }, lang);
 
             cache.daily = text;
+            cache.lang = lang;
             return text;
         })
         .catch(error => {
