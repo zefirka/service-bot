@@ -3,7 +3,7 @@
 const r = require('request');
 const toArray = require('lodash').toArray;
 
-exports.post = (url, query, headers) => _call(url, 'POST', {body: {query}, headers});
+exports.post = (url, data, headers) => _call(url, 'POST', {headers, data});
 exports.get = (url, data, headers) => _call(url, 'GET', {headers, data});
 exports.call = (url, data) => {
     return _call(url, 'GET', {
@@ -31,7 +31,7 @@ function _call(url, method, data) {
         json: data.json || true,
         encoding: data.encoding || 'utf-8',
         headers: data.headers,
-        body: data.body,
+        body: data.data,
         qs: data.data
     };
 

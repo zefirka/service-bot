@@ -61,7 +61,7 @@ function subscribe() {
             crons
                 .getDaily()
                 .then(function (daily) {
-                    serviceBot.call('sendMessage', {
+                    serviceBot.send({
                             chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
                             text: daily,
                             parse_mode: 'Markdown'
@@ -72,6 +72,44 @@ function subscribe() {
                         .catch(error => {
                             logger('An error was occured', error);
                         });
+                });
+        })
+        .on('language:request', function (data) {
+            const update = data.update;
+            serviceBot.keyboard('Выберите язык', {
+                chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
+                markup: {
+                    keyboard: [
+                        ['ru', 'en'],
+                        ['Передумал']
+                    ],
+                    resize_keyboard: true,
+                    one_time_keyboard: true
+                }
+            }).then(() => {
+                serviceBot.setState('language:await');
+            });
+        })
+        .on('language:change', function (data) {
+            const update = data.update;
+            serviceBot
+                .send({
+                    chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
+                    text: 'Language changed'
+                })
+                .then(() => {
+                    serviceBot.flushState();
+                });
+        })
+        .on('wrong', function (data) {
+            const update = data.update;
+            serviceBot
+                .send({
+                    chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
+                    text: 'Неправильная комнада'
+                })
+                .then(() => {
+                    serviceBot.flushState();
                 });
         });
 }

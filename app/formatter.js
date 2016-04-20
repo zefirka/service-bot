@@ -15,6 +15,7 @@ function formatDaily(obj, locale) {
 *${obj.title}* _(${moment(Date.now()).format('DD MMM YYYY')})_
 
 _${obj.annotation}_
+*${obj.from}*
 
 ${obj.body}
 
@@ -23,5 +24,6 @@ ${obj.end.replace('ТОЛЬКО СЕГОДНЯ:', '*ТОЛЬКО СЕГОДНЯ:
 `;
     return _unescape(text)
             .replace(/\&laquo;/g, '«')
-            .replace(/\&raquo;/g, '»');
+            .replace(/\&raquo;/g, '»')
+            .replace(/\&mdash;/g, '–');
 }

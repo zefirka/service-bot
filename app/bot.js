@@ -52,15 +52,26 @@ Bot.prototype.processUpdate = function (update) {
         const commandBody = self.commands[command];
         const matches = commandBody.matches;
 
+        if (self.state && commandBody.onState && commandBody.onState !== self.state) {
+            return;
+        }
+
         const isMatchingAnyCommand = [
             Array.isArray(matches) ? matches.some(isCommand(text)) : matches.test(text),
             commandBody.isBotCommand && new RegExp(`^/${command}`).test(text)
         ].some(Boolean);
 
         if (isMatchingAnyCommand) {
-            self.emit(command, {
-                update: update,
-                command: command
+            self.emit(commandBody.event || command, {
+                update,
+                command
+            });
+        }
+
+        if (commandBody.onState && commandBody.onState === self.state) {
+            self.emit('wrong', {
+                update,
+                command
             });
         }
     });
@@ -69,6 +80,26 @@ Bot.prototype.processUpdate = function (update) {
 Bot.prototype.call = function (method, data) {
     const url = this._url.replace('{method}', method);
     return utils.get(url, data);
+};
+
+Bot.prototype.send = function (data) {
+    return this.call('sendMessage', data);
+};
+
+Bot.prototype.setState = function (state) {
+    this.state = state;
+};
+
+Bot.prototype.flushState = function () {
+    this.state = null;
+};
+
+Bot.prototype.keyboard = function (text, data) {
+    return this.call('sendMessage', {
+        text: text,
+        reply_markup: JSON.stringify(data.markup),
+        chat_id: data.chat_id
+    });
 };
 
 Bot.prototype.auth = function (async) {
