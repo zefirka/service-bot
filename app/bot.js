@@ -3,7 +3,9 @@
 const EventEmitter = require('events');
 const util = require('util');
 const mongoose = require('mongoose');
+
 const lodash = require('lodash');
+const find = lodash.find;
 
 const utils = require('./utils');
 const logger = require('./utils/logger');
@@ -58,6 +60,32 @@ Bot.prototype.setCommands = function (commands) {
     return this;
 };
 
+/* TODO Можно адски оптимизировать */
+function isTextMatchesToCommand(commandMatch, text, commandName, bot, message) {
+    if (typeof commandMatch === 'function') {
+        return commandMatch(bot, message);
+    }else
+    if (typeof commandMatch === 'string' && commandMatch === text) {
+        return commandMatch;
+    }else
+    if (commandMatch instanceof RegExp && commandMatch.test(text)) {
+        return commandMatch;
+    }else
+    if (commandName && new RegExp(`^/${commandName}`).test(text)) {
+        return commandName;
+    }else
+    if (Array.isArray(commandMatch)) {
+        return commandMatch.some(itemOfCommandMatch => {
+            return isTextMatchesToCommand(itemOfCommandMatch, text, commandName, bot, message);
+        });
+    }else
+    if (typeof commandMatch === 'object' && commandMatch.match) {
+        return isTextMatchesToCommand(commandMatch.match, text, commandName, bot, message);
+    }else {
+        return false;
+    }
+}
+
 Bot.prototype.processUpdate = function (update) {
     const text = update.message.text;
     const self = this;
@@ -65,21 +93,37 @@ Bot.prototype.processUpdate = function (update) {
     Object.keys(this.commands).forEach(function (command) {
         const commandBody = self.commands[command];
         const matches = commandBody.matches;
+        const commandText = commandBody.isBotCommand && command;
 
+        /**
+         * Если бот в каком-то состоянии, и команда реагирует только на состояние и эти состояние не равны
+         */
         if (self.state && commandBody.onState && commandBody.onState !== self.state) {
             return;
         }
 
-        const isMatchingAnyCommand = [
-            Array.isArray(matches) ? matches.some(isCommand(text)) : matches.test(text),
-            commandBody.isBotCommand && new RegExp(`^/${command}`).test(text)
-        ].some(Boolean);
+        if (commandBody.onState && !self.state) {
+            return;
+        }
 
-        if (isMatchingAnyCommand) {
+        let matching = false;
+
+        if (Array.isArray(matches)) {
+            matching = find(matches, function (descriptor) {
+                return isTextMatchesToCommand(descriptor, text, commandText, self, update.message);
+            });
+        } else {
+            matching = isTextMatchesToCommand(matches, text, commandText, self, update.message);
+        }
+
+        if (matching) {
+            console.log('matching', matching);
             self.emit(commandBody.event || command, {
                 update,
-                command
+                command,
+                matching
             });
+            return;
         }
 
         if (commandBody.onState && commandBody.onState === self.state) {
@@ -227,11 +271,5 @@ Bot.prototype.connectToDb = function () {
         });
     });
 };
-
-function isCommand(text) {
-    return function (match) {
-        return match.test(text);
-    };
-}
 
 module.exports = Bot;

@@ -6,6 +6,7 @@ const spread = lodash.spread;
 const Bot = require('./bot');
 const crons = require('./crons');
 const config = require('./config');
+const i18n = require('./utils/i18n');
 
 const onProd = config.onProd;
 const onDev = config.onDev;
@@ -106,40 +107,44 @@ function subscribe() {
         })
         .on('language:request', function (data) {
             const update = data.update;
-            serviceBot.keyboard('Выберите язык', {
+            const currentLang = serviceBot.getUserLang(update.message.from.id);
+
+            i18n.lang(currentLang);
+
+            serviceBot.keyboard(i18n('Choose language'), {
                 chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
                 markup: {
                     keyboard: [
                         ['ru', 'en'],
-                        ['Передумал']
+                        [i18n('I change my mind')]
                     ],
                     resize_keyboard: true,
                     one_time_keyboard: true
                 }
-            }).then(() => {
-                serviceBot.setState('language:await');
-            });
+            }).then(() => serviceBot.setState('language:await'));
         })
         .on('language:change', function (data) {
             const update = data.update;
+            const matching = data.matching;
+            const answer = matching && matching.answer;
+            const currentLang = serviceBot.getUserLang(update.message.from.id);
+
             serviceBot
                 .send({
                     chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
-                    text: 'Language changed'
+                    text: answer(serviceBot, currentLang)
                 })
-                .then(() => {
-                    serviceBot.flushState();
-                });
+                .then(() => matching.action && matching.action(serviceBot));
         })
         .on('wrong', function (data) {
             const update = data.update;
+            const currentLang = serviceBot.getUserLang(update.message.from.id);
+
+            i18n.lang(currentLang);
             serviceBot
                 .send({
                     chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
-                    text: 'Неправильная комнада'
-                })
-                .then(() => {
-                    serviceBot.flushState();
+                    text: i18n('Wrong command') || 'Wrong command'
                 });
         });
 }
