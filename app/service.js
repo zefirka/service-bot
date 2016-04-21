@@ -134,8 +134,6 @@ function subscribe() {
 
             matching.action(serviceBot, userId)
                 .then(() => {
-                    console.log('answerText', answerText);
-                    console.log('---------->\n\n');
                     serviceBot
                         .send({
                             chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
