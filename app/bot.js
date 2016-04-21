@@ -243,7 +243,7 @@ Bot.prototype.getUserById = function (id) {
     let userId = this.get('users')[id];
     return userId ? Promise.resolve(userId) : models.User.find({id: String(id)}).then(users => {
         if (users.length <= 1) {
-            return users[0].toJSON();
+            return users[0] && users[0].toJSON();
         } else {
             throw 'Duplicate USER_ID at table Users';
         }
@@ -268,6 +268,7 @@ Bot.prototype.setLang = function (id, lang) {
 Bot.prototype.connectToDb = function () {
     const self = this;
     return new Promise((resolve, reject) => {
+        console.log('process.env.MONGOLAB_URI', process.env.MONGOLAB_URI);
         mongoose.connect(process.env.MONGOLAB_URI, error => {
             if (error) {
                 logger('An error was occured while connecting to Mongo')
