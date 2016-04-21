@@ -26,7 +26,7 @@
     "moment": "^2.13.0",
     "mongoose": "^4.4.12",
     "request": "^2.69.0",
-    "yai": "0.0.5"
+    "yai": "0.0.6"
   },
   "devDependencies": {
     "gulp": "^3.9.0",
