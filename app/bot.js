@@ -256,6 +256,15 @@ Bot.prototype.getUserLang = function (id) {
     return this.get('users')[id].lang;
 };
 
+Bot.prototype.setLang = function (id, lang) {
+    return models.User.update({id: String(id)}, {lang: lang})
+        .then(res => {
+            logger.dev(res);
+            this.get('users')[id].lang = lang;
+            logger(`Updated users lang to ${lang}`);
+        });
+};
+
 Bot.prototype.connectToDb = function () {
     const self = this;
     return new Promise((resolve, reject) => {

@@ -98,6 +98,7 @@ function subscribe() {
                             parse_mode: 'Markdown'
                         }).then(data => {
                             logger('Message sent with status: ok')
+                                .dev(data)
                                 .dev(`message_id: ${data.result.message_id}`);
                         })
                         .catch(error => {
@@ -127,14 +128,20 @@ function subscribe() {
             const update = data.update;
             const matching = data.matching;
             const answer = matching && matching.answer;
-            const currentLang = serviceBot.getUserLang(update.message.from.id);
+            const userId = update.message.from.id;
+            const currentLang = serviceBot.getUserLang(userId);
+            const answerText = answer(serviceBot, currentLang);
 
-            serviceBot
-                .send({
-                    chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
-                    text: answer(serviceBot, currentLang)
-                })
-                .then(() => matching.action && matching.action(serviceBot));
+            matching.action(serviceBot, userId)
+                .then(() => {
+                    console.log('answerText', answerText);
+                    console.log('---------->\n\n');
+                    serviceBot
+                        .send({
+                            chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
+                            text: answerText
+                        });
+                });
         })
         .on('wrong', function (data) {
             const update = data.update;

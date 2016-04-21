@@ -6,14 +6,21 @@ function flush(bot) {
     bot.flushState();
 }
 
+function _null() {
+    return Promise.resolve(null);
+}
+
 let onRussianMatch = {
     match: /^ru$/,
     answer: function (bot, lang) {
         if (lang === 'ru') {
-            onRussianMatch.action = null;
+            onRussianMatch.action = _null;
             return 'Язык и так русский';
         }
-        onRussianMatch.action = flush;
+        onRussianMatch.action = function (bot, uid) {
+            flush(bot);
+            return bot.setLang(uid, 'ru');
+        };
         return 'Готовенько!';
 
     },
@@ -24,10 +31,13 @@ let onEnglishMatch = {
     match: /^en$/,
     answer: function (bot, lang) {
         if (lang === 'en') {
-            onEnglishMatch.action = null;
+            onEnglishMatch.action = _null;
             return 'Language is already English';
         }
-        onEnglishMatch.action = flush;
+        onEnglishMatch.action = function (bot, uid) {
+            flush(bot);
+            return bot.setLang(uid, 'en');
+        };
         return 'Ready!';
     },
     action: flush
@@ -35,8 +45,7 @@ let onEnglishMatch = {
 
 let languageMatches = [
     onRussianMatch,
-    onEnglishMatch,
-    {
+    onEnglishMatch, {
         match: function (bot, message) {
             i18n.lang(bot.getUserLang(message.from.id));
             return new RegExp('^' + i18n('I change my mind') + '$').test(message.text);
