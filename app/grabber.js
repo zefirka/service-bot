@@ -2,7 +2,7 @@
 
 const iconv = require('iconv');
 const cheerio = require('cheerio');
-const utils = require('./utils');
+const utils = require('./utils/web');
 const call = utils.call;
 
 function grab(url) {

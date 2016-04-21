@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const lodash = require('lodash');
 const find = lodash.find;
 
-const utils = require('./utils');
+const utils = require('./utils/web');
 const logger = require('./utils/logger');
 const models = require('./db/model');
 
@@ -135,6 +135,12 @@ Bot.prototype.processUpdate = function (update) {
     });
 };
 
+/**
+ * @public
+ * @param {string} method
+ * @param {object} data
+ * @return {Promise}
+ */
 Bot.prototype.call = function (method, data) {
     const url = this._url.replace('{method}', method);
     return utils.get(url, data);
@@ -165,7 +171,8 @@ Bot.prototype.auth = function (async) {
     return this.register(() => {
         return self.call('getMe').then(data => {
             if (data.ok) {
-                logger('Auth is successfull').dev(data.result);
+                logger  .success('Auth is successfull')
+                        .dev.success(data.result);
                 return data;
             } else {
                 throw data;
@@ -268,14 +275,14 @@ Bot.prototype.setLang = function (id, lang) {
 Bot.prototype.connectToDb = function () {
     const self = this;
     return new Promise((resolve, reject) => {
-        console.log('process.env.MONGOLAB_URI', process.env.MONGOLAB_URI);
         mongoose.connect(process.env.MONGOLAB_URI, error => {
             if (error) {
-                logger('An error was occured while connecting to Mongo')
-                    .dev(error);
+                logger.error('An error was occured while connecting to Mongo')
+                      .dev.error(error);
                 reject(error);
                 return;
             }
+            logger.success('Service Bot connected with database');
             self._connected = true;
             resolve();
         });

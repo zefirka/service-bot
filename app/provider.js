@@ -2,11 +2,15 @@
 
 const logger = require('./utils/logger');
 const grabber = require('./grabber');
-const CronJob = require('cron').CronJob;
+
+const dailyCron = require('./crons/daily');
+
 const formatDaily = require('./formatter').formatDaily;
 const i18n = require('./utils/i18n');
 
 const config = require('./config');
+
+module.exports.getDaily = getDaily;
 
 let cache = {
     daily: {}
@@ -34,11 +38,11 @@ const getDailyData = {
     }
 };
 
-module.exports.getDaily = getDaily;
-
 function getDaily(lang, update) {
     lang = lang || 'ru';
-    logger('Getting daily on', lang);
+    logger
+        .debug(`Getting daily with locale: ${lang}`)
+        .prod.note('Getting daily');
 
     if (!update && cache.daily[lang] && cache.lang === lang) {
         return Promise.resolve(cache.daily[lang]);
@@ -50,25 +54,20 @@ function getDaily(lang, update) {
 
     return grabber(dailyAddress)
         .then($ => {
+            logger.debug.success('Daily grabbed successfully');
             let text = formatDaily(getDailyData[lang]($), lang);
 
             cache.daily[lang] = text;
             cache.lang = lang;
             return text;
         })
-        .catch(error => {
-            console.log('error', error);
-        });
+        .catch(error => logger.error(error));
 }
 
-every('00 00 00 * * *', function () {
+dailyCron('Update russian daily', () => {
     getDaily('ru', true);
-    getDaily('en', true);
-}).start();
+}, 'Europe/Moscow');
 
-function every(time, fn) {
-    return new CronJob({
-        cronTime: time,
-        onTick: fn,
-    });
-}
+dailyCron('Update american daily', () => {
+    getDaily('en', true);
+}, 'America/Los_Angeles');

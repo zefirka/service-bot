@@ -1,11 +1,13 @@
 'use strict';
 
-const utils = require('./utils');
+const utils = require('./utils/data');
 
 const config = {
     mode: process.env.MODE || 'dev',
+    debug: process.env.DEBUG || 'false',
     onProd: (val, _else) => config.mode === 'prod' ? utils.exec(val) : (utils.exec(_else) || null),
     onDev: (val, _else) => config.mode === 'dev' ? utils.exec(val) : (utils.exec(_else) || null),
+    onDebug: val => config.debug === 'true' ? utils.exec(val) : null
 };
 
 const devApp = require('../app.dev.json');

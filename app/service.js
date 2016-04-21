@@ -4,7 +4,7 @@ const lodash = require('lodash');
 const spread = lodash.spread;
 
 const Bot = require('./bot');
-const crons = require('./crons');
+const provider = require('./provider');
 const config = require('./config');
 const i18n = require('./utils/i18n');
 
@@ -39,8 +39,7 @@ function init() {
                 return config;
             });
 
-            logger('Service Bot is ready');
-            logger('Service Bot connected with database');
+            logger.hoorai('Service Bot is ready');
             serviceBot.emit('ready');
 
         }))
@@ -49,7 +48,7 @@ function init() {
             throw error;
         });
 
-    crons
+    provider
         .getDaily();
 
     return serviceBot;
@@ -62,9 +61,8 @@ function subscribeApi(app) {
 function subscribe() {
     return serviceBot
         .on('update', function (upd) {
-            logger('Update recieved:')
-                .dev(upd)
-                .prod(upd.message.text);
+            logger.note(`Update: "${upd.message.text}" from @${upd.message.from.username} recieved`)
+                .debug(upd);
 
             const user = upd.message.from;
 
@@ -87,9 +85,7 @@ function subscribe() {
             const userId = update.message.from.id;
             const userLang = serviceBot.getUserLang(userId);
 
-            logger.dev('/daily command recieved');
-
-            crons
+            provider
                 .getDaily(userLang)
                 .then(function (daily) {
                     serviceBot.send({
@@ -102,7 +98,7 @@ function subscribe() {
                                 .dev(`message_id: ${data.result.message_id}`);
                         })
                         .catch(error => {
-                            logger('An error was occured', error);
+                            logger.error('An error was occured', error);
                         });
                 });
         })
