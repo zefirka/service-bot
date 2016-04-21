@@ -1,0 +1,10 @@
+{
+    "defaultRemover": "./tools/jsonRemover.js",
+    "defaultKeyset": "common",
+    "defaultType": "json",
+    "defaultLang": "en",
+    "defaultAdder": "./tools/jsonAdder.js",
+    "defaultAddress": "./etc/lang",
+    "lang": "ru",
+    "address": "/Users/zeffirsky/Projects/service-bot/etc/lang"
+}

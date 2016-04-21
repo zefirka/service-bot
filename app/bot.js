@@ -2,24 +2,41 @@
 
 const EventEmitter = require('events');
 const util = require('util');
-const utils = require('./utils');
+const mongoose = require('mongoose');
 
+const lodash = require('lodash');
+const find = lodash.find;
+
+const utils = require('./utils');
 const logger = require('./utils/logger');
+const models = require('./db/model');
 
 function Bot(token) {
     this.token = token;
     this._actions = [];
+    this._connected = false;
     this._url = `https://api.telegram.org/bot${token}/{method}`;
 
-    let storage = {};
-
-    this.set = function (key, value) {
-        storage[key] = value;
-        return value;
+    let storage = {
+        users: {},
+        groups: {}
     };
 
-    this.get = function (value) {
-        return storage[value];
+    this.set = function (key, valueOrKey, valueOrNothing) {
+        if (valueOrNothing !== undefined) {
+            let inner = storage[key];
+            if (inner) {
+                storage[key][valueOrKey] = valueOrNothing;
+                return valueOrNothing;
+            }
+        } else {
+            storage[key] = valueOrKey;
+        }
+        return valueOrKey;
+    };
+
+    this.get = function (key) {
+        return lodash.get(storage, key);
     };
 
     EventEmitter.call(this);
@@ -32,7 +49,6 @@ Bot.prototype.assign = function (app) {
     app.post(`/token/${this.token}/`, (req, res) => {
         const update = req.body;
         self.emit('update', update);
-        self.processUpdate(update);
         res.status(200).send('Ok');
     });
 
@@ -44,6 +60,32 @@ Bot.prototype.setCommands = function (commands) {
     return this;
 };
 
+/* TODO Можно адски оптимизировать */
+function isTextMatchesToCommand(commandMatch, text, commandName, bot, message) {
+    if (typeof commandMatch === 'function') {
+        return commandMatch(bot, message);
+    }else
+    if (typeof commandMatch === 'string' && commandMatch === text) {
+        return commandMatch;
+    }else
+    if (commandMatch instanceof RegExp && commandMatch.test(text)) {
+        return commandMatch;
+    }else
+    if (commandName && new RegExp(`^/${commandName}`).test(text)) {
+        return commandName;
+    }else
+    if (Array.isArray(commandMatch)) {
+        return commandMatch.some(itemOfCommandMatch => {
+            return isTextMatchesToCommand(itemOfCommandMatch, text, commandName, bot, message);
+        });
+    }else
+    if (typeof commandMatch === 'object' && commandMatch.match) {
+        return isTextMatchesToCommand(commandMatch.match, text, commandName, bot, message);
+    }else {
+        return false;
+    }
+}
+
 Bot.prototype.processUpdate = function (update) {
     const text = update.message.text;
     const self = this;
@@ -51,16 +93,43 @@ Bot.prototype.processUpdate = function (update) {
     Object.keys(this.commands).forEach(function (command) {
         const commandBody = self.commands[command];
         const matches = commandBody.matches;
+        const commandText = commandBody.isBotCommand && command;
 
-        const isMatchingAnyCommand = [
-            Array.isArray(matches) ? matches.some(isCommand(text)) : matches.test(text),
-            commandBody.isBotCommand && new RegExp(`^/${command}`).test(text)
-        ].some(Boolean);
+        /**
+         * Если бот в каком-то состоянии, и команда реагирует только на состояние и эти состояние не равны
+         */
+        if (self.state && commandBody.onState && commandBody.onState !== self.state) {
+            return;
+        }
 
-        if (isMatchingAnyCommand) {
-            self.emit(command, {
-                update: update,
-                command: command
+        if (commandBody.onState && !self.state) {
+            return;
+        }
+
+        let matching = false;
+
+        if (Array.isArray(matches)) {
+            matching = find(matches, function (descriptor) {
+                return isTextMatchesToCommand(descriptor, text, commandText, self, update.message);
+            });
+        } else {
+            matching = isTextMatchesToCommand(matches, text, commandText, self, update.message);
+        }
+
+        if (matching) {
+            console.log('matching', matching);
+            self.emit(commandBody.event || command, {
+                update,
+                command,
+                matching
+            });
+            return;
+        }
+
+        if (commandBody.onState && commandBody.onState === self.state) {
+            self.emit('wrong', {
+                update,
+                command
             });
         }
     });
@@ -69,6 +138,26 @@ Bot.prototype.processUpdate = function (update) {
 Bot.prototype.call = function (method, data) {
     const url = this._url.replace('{method}', method);
     return utils.get(url, data);
+};
+
+Bot.prototype.send = function (data) {
+    return this.call('sendMessage', data);
+};
+
+Bot.prototype.setState = function (state) {
+    this.state = state;
+};
+
+Bot.prototype.flushState = function () {
+    this.state = null;
+};
+
+Bot.prototype.keyboard = function (text, data) {
+    return this.call('sendMessage', {
+        text: text,
+        reply_markup: JSON.stringify(data.markup),
+        chat_id: data.chat_id
+    });
 };
 
 Bot.prototype.auth = function (async) {
@@ -126,10 +215,70 @@ Bot.prototype.invoke = function () {
     }, null);
 };
 
-function isCommand(text) {
-    return function (match) {
-        return match.test(text);
+/**
+ * @public
+ * @param {object} user
+ * @return {Promise}
+ */
+Bot.prototype.createUser = function (user) {
+    logger('Saving new user: ')
+        .prod(user.username)
+        .dev(user);
+
+    const userData = {
+        id: user.id,
+        username: user.username,
+        lang: 'ru',
+        timezone: 'GMT +3: MSK'
     };
-}
+
+    const newUser = new models.User(userData);
+
+    return newUser
+        .save(newUser)
+        .then(() => userData);
+};
+
+Bot.prototype.getUserById = function (id) {
+    let userId = this.get('users')[id];
+    return userId ? Promise.resolve(userId) : models.User.find({id: String(id)}).then(users => {
+        if (users.length <= 1) {
+            return users[0].toJSON();
+        } else {
+            throw 'Duplicate USER_ID at table Users';
+        }
+    }).catch(error => {
+        console.log('error', error);
+    });
+};
+
+Bot.prototype.getUserLang = function (id) {
+    return this.get('users')[id].lang;
+};
+
+Bot.prototype.setLang = function (id, lang) {
+    return models.User.update({id: String(id)}, {lang: lang})
+        .then(res => {
+            logger.dev(res);
+            this.get('users')[id].lang = lang;
+            logger(`Updated users lang to ${lang}`);
+        });
+};
+
+Bot.prototype.connectToDb = function () {
+    const self = this;
+    return new Promise((resolve, reject) => {
+        mongoose.connect(process.env.MONGOLAB_URI, error => {
+            if (error) {
+                logger('An error was occured while connecting to Mongo')
+                    .dev(error);
+                reject(error);
+                return;
+            }
+            self._connected = true;
+            resolve();
+        });
+    });
+};
 
 module.exports = Bot;

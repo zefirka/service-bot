@@ -24,7 +24,9 @@
     "jade": "^1.11.0",
     "lodash": "3.10.0",
     "moment": "^2.13.0",
-    "request": "^2.69.0"
+    "mongoose": "^4.4.12",
+    "request": "^2.69.0",
+    "yai": "0.0.5"
   },
   "devDependencies": {
     "gulp": "^3.9.0",
