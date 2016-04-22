@@ -4,6 +4,7 @@ const i18n = require('../utils/i18n');
 
 function flush(bot) {
     bot.flushState();
+    return Promise.resolve();
 }
 
 function _null() {
@@ -21,7 +22,12 @@ let onRussianMatch = {
             flush(bot);
             return bot.setLang(uid, 'ru');
         };
-        return 'Готовенько!';
+        return {
+            text: 'Готовенько!',
+            reply_markup: JSON.stringify({
+                hide_keyboard: true
+            })
+        };
 
     },
     action: flush
@@ -38,7 +44,12 @@ let onEnglishMatch = {
             flush(bot);
             return bot.setLang(uid, 'en');
         };
-        return 'Ready!';
+        return {
+            text: 'Ready!',
+            reply_markup: JSON.stringify({
+                hide_keyboard: true
+            })
+        };
     },
     action: flush
 };
@@ -52,7 +63,12 @@ let languageMatches = [
         },
         answer: function (bot, lang) {
             i18n(lang);
-            return i18n('As you wish');
+            return {
+                text: i18n('As you wish'),
+                reply_markup: JSON.stringify({
+                    hide_keyboard: true
+                })
+            };
         },
         action: flush
     }
@@ -61,8 +77,9 @@ let languageMatches = [
 module.exports = {
     daily: {
         matches: [
-            /^[Ее]жедневник/,
-            /^[еЕЁё]ж/,
+            /^[её]ж($|едневник$|ик$)/i,
+            /^daily$/i,
+            /^dm$/i
         ],
         isBotCommand: true,
         sentAll: true,

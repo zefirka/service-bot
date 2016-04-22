@@ -127,15 +127,14 @@ function subscribe() {
             const answer = matching && matching.answer;
             const userId = update.message.from.id;
             const currentLang = serviceBot.getUserLang(userId);
-            const answerText = answer(serviceBot, currentLang);
+            const answerBody = answer(serviceBot, currentLang);
 
             matching.action(serviceBot, userId)
                 .then(() => {
                     serviceBot
-                        .send({
+                        .send(Object.assign(answerBody, {
                             chat_id: onProd(update.message.chat.id, serviceBot.get('chatId')),
-                            text: answerText
-                        });
+                        }));
                 });
         })
         .on('wrong', function (data) {
