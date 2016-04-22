@@ -13,12 +13,13 @@ const onDev = config.onDev;
 
 const logger = require('./utils/logger');
 
-const TOKEN = config.token;
-const WEBHOOK = config.webhook;
+const authToken = config.token;
+const webhook = config.webhook;
+const mongolabUri = config.mongolabUri;
 
-const webhookAddress = onProd(WEBHOOK.replace('{token}', TOKEN), '');
+const webhookAddress = onProd(webhook.replace('{token}', authToken), '');
 
-const serviceBot = new Bot(TOKEN);
+const serviceBot = new Bot(authToken, mongolabUri);
 
 const SERVICE_BOT_COMMANDS = require('./commands/serviceBot');
 

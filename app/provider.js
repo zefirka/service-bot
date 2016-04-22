@@ -5,7 +5,7 @@ const grabber = require('./grabber');
 
 const dailyCron = require('./crons/daily');
 
-const formatDaily = require('./formatter').formatDaily;
+const formatDaily = require('./formatters').daily;
 const i18n = require('./utils/i18n');
 
 const config = require('./config');

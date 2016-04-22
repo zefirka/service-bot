@@ -2,9 +2,12 @@
 
 const toArray = require('lodash').toArray;
 
-exports.empty = empty;
-exports.lense = lense;
-exports.exec = exec;
+module.exports = {
+    lense,
+    empty,
+    exec,
+    inject
+};
 
 /**
  * @return {function}
@@ -31,6 +34,26 @@ function empty() {
     return '';
 }
 
+/**
+ * @public
+ * @param {function|*} val
+ * @return {*}
+ */
 function exec(val) {
     return typeof val === 'function' ? val() : val;
+}
+
+/**
+ * @public
+ * @param {string} str
+ * @param {object} o
+ * @return {string}
+ */
+function inject(str, o) {
+    return str.replace(/{([^{}]*)}/g,
+        function (a, b) {
+            var r = o[b];
+            return typeof r === 'string' || typeof r === 'number' ? r : a;
+        }
+    );
 }

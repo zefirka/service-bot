@@ -29,7 +29,7 @@ app.use('*', (req, res) => res.status(404).end('Not found'));
 app.listen(PORT, () => {
     service
         .init(app)
-        .on('ready', () => logger.debug('!!!!! APPLICATION IS READY !!!!!'.rainbow))
+        .on('ready', () => logger('!!!!! APPLICATION IS READY !!!!!'.rainbow))
         .on('ready', () => service.subscribe(app));
 
     logger.note(`Web Server started. Lstening port: ${PORT}`);
